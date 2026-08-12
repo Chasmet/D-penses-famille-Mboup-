@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -38,6 +39,15 @@ public class MainActivity extends Activity {
 
     private static final String TYPE_INCOME = "Salaire / entrée";
     private static final String TYPE_EXPENSE = "Dépense";
+
+    private static final int COLOR_PAGE = Color.rgb(5, 8, 22);
+    private static final int COLOR_CARD = Color.rgb(16, 24, 39);
+    private static final int COLOR_ROW = Color.rgb(22, 32, 51);
+    private static final int COLOR_TEXT = Color.rgb(248, 250, 252);
+    private static final int COLOR_MUTED = Color.rgb(167, 176, 192);
+    private static final int COLOR_GREEN = Color.rgb(34, 197, 94);
+    private static final int COLOR_RED = Color.rgb(248, 113, 113);
+    private static final int COLOR_BLUE = Color.rgb(96, 165, 250);
 
     private static final String[] GROUPS = new String[]{
             GROUP_CHEIKH,
@@ -86,10 +96,23 @@ public class MainActivity extends Activity {
     private void renderAll() {
         renderSummary();
         tableContainer.removeAllViews();
-        tableContainer.addView(createTable(GROUP_CHEIKH));
-        tableContainer.addView(createTable(GROUP_MEOUBA));
-        tableContainer.addView(createTable(GROUP_COMMON));
-        tableContainer.addView(createTable(GROUP_CREDIT));
+        tableContainer.addView(createTwoColumnRow(GROUP_CHEIKH, GROUP_MEOUBA));
+        tableContainer.addView(createTwoColumnRow(GROUP_COMMON, GROUP_CREDIT));
+    }
+
+    private LinearLayout createTwoColumnRow(String leftGroup, String rightGroup) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setWeightSum(2f);
+        LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        rowParams.setMargins(0, 0, 0, dp(8));
+        row.setLayoutParams(rowParams);
+        row.addView(createTable(leftGroup, true));
+        row.addView(createTable(rightGroup, false));
+        return row;
     }
 
     private void renderSummary() {
@@ -107,44 +130,49 @@ public class MainActivity extends Activity {
         double familyBalance = totalIncome - totalExpense;
 
         StringBuilder sb = new StringBuilder();
-        sb.append("Revenus famille : ").append(money(totalIncome)).append("\n");
-        sb.append("Dépenses famille : ").append(money(totalExpense)).append("\n");
-        sb.append("Charges communes + crédits : ").append(money(expenseCommon + expenseCredit)).append("\n");
-        sb.append("Part commune par personne : ").append(money(commonShare)).append("\n\n");
-        sb.append("Reste Cheikh : ").append(money(balanceCheikh)).append("\n");
-        sb.append("Reste Méouba : ").append(money(balanceMeouba)).append("\n");
-        sb.append("Reste final famille : ").append(money(familyBalance));
+        sb.append("Revenus ").append(moneyCompact(totalIncome));
+        sb.append("  •  Dépenses ").append(moneyCompact(totalExpense)).append("\n");
+        sb.append("Commun + crédits ").append(moneyCompact(expenseCommon + expenseCredit));
+        sb.append("  •  Part chacun ").append(moneyCompact(commonShare)).append("\n");
+        sb.append("Cheikh ").append(moneyCompact(balanceCheikh));
+        sb.append("  |  Méouba ").append(moneyCompact(balanceMeouba)).append("\n");
+        sb.append("Final famille : ").append(money(familyBalance));
         summaryText.setText(sb.toString());
-
-        if (familyBalance < 0) {
-            summaryText.setTextColor(Color.parseColor("#B42318"));
-        } else {
-            summaryText.setTextColor(Color.parseColor("#18202A"));
-        }
+        summaryText.setTextColor(familyBalance < 0 ? COLOR_RED : COLOR_TEXT);
     }
 
-    private LinearLayout createTable(final String group) {
+    private LinearLayout createTable(final String group, boolean left) {
         LinearLayout table = new LinearLayout(this);
         table.setOrientation(LinearLayout.VERTICAL);
         table.setBackgroundResource(R.drawable.card_background);
-        table.setPadding(dp(12), dp(12), dp(12), dp(12));
+        table.setPadding(dp(6), dp(7), dp(6), dp(7));
 
-        LinearLayout.LayoutParams tableParams = new LinearLayout.LayoutParams(dp(292), ViewGroup.LayoutParams.WRAP_CONTENT);
-        tableParams.setMargins(0, 0, dp(10), 0);
+        LinearLayout.LayoutParams tableParams = new LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f
+        );
+        if (left) {
+            tableParams.setMargins(0, 0, dp(4), 0);
+        } else {
+            tableParams.setMargins(dp(4), 0, 0, 0);
+        }
         table.setLayoutParams(tableParams);
 
         TextView title = new TextView(this);
-        title.setText(group);
-        title.setTextColor(Color.parseColor("#18202A"));
-        title.setTextSize(18);
+        title.setText(shortGroupName(group));
+        title.setTextColor(COLOR_TEXT);
+        title.setTextSize(14);
         title.setTypeface(null, 1);
+        title.setSingleLine(false);
         table.addView(title);
 
         TextView total = new TextView(this);
         total.setText(buildGroupTotalText(group));
-        total.setTextColor(Color.parseColor("#667085"));
-        total.setTextSize(13);
-        total.setPadding(0, dp(3), 0, dp(8));
+        total.setTextColor(COLOR_MUTED);
+        total.setTextSize(10);
+        total.setPadding(0, dp(2), 0, dp(6));
+        total.setSingleLine(false);
         table.addView(total);
 
         for (BudgetItem item : items) {
@@ -154,8 +182,13 @@ public class MainActivity extends Activity {
         }
 
         Button addHere = new Button(this);
-        addHere.setText("+ Ligne ici");
+        addHere.setText("+ ici");
+        addHere.setTextSize(11);
         addHere.setAllCaps(false);
+        addHere.setMinHeight(0);
+        addHere.setMinimumHeight(0);
+        addHere.setPadding(dp(3), dp(2), dp(3), dp(2));
+        addHere.setTextColor(COLOR_TEXT);
         addHere.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -167,39 +200,53 @@ public class MainActivity extends Activity {
         return table;
     }
 
+    private String shortGroupName(String group) {
+        if (GROUP_CHEIKH.equals(group)) {
+            return "M. Mboup";
+        }
+        if (GROUP_MEOUBA.equals(group)) {
+            return "Mme Gomis";
+        }
+        if (GROUP_CREDIT.equals(group)) {
+            return "Frais / crédits";
+        }
+        return group;
+    }
+
     private String buildGroupTotalText(String group) {
         double income = sum(group, TYPE_INCOME);
         double expense = sum(group, TYPE_EXPENSE);
         double balance = income - expense;
-        return "Entrées : " + money(income) + "  |  Sorties : " + money(expense) + "  |  Solde : " + money(balance);
+        return "+ " + moneyCompact(income) + "\n- " + moneyCompact(expense) + "\n= " + moneyCompact(balance);
     }
 
     private View createBudgetRow(final BudgetItem item) {
         LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(8), dp(8), dp(8), dp(8));
-        row.setBackgroundColor(Color.parseColor("#F8FAFC"));
+        row.setOrientation(LinearLayout.VERTICAL);
+        row.setPadding(dp(5), dp(5), dp(5), dp(5));
+        row.setBackgroundColor(COLOR_ROW);
 
-        LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        rowParams.setMargins(0, 0, 0, dp(6));
+        LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        rowParams.setMargins(0, 0, 0, dp(5));
         row.setLayoutParams(rowParams);
 
         TextView name = new TextView(this);
-        name.setText(item.name + (item.fixed ? "  • fixe" : ""));
-        name.setTextColor(Color.parseColor("#18202A"));
-        name.setTextSize(14);
+        name.setText(item.name + (item.fixed ? " • fixe" : ""));
+        name.setTextColor(COLOR_TEXT);
+        name.setTextSize(11);
         name.setSingleLine(false);
-        name.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         row.addView(name);
 
         TextView amount = new TextView(this);
-        amount.setText(money(item.amount));
-        amount.setTextSize(14);
+        amount.setText(moneyCompact(item.amount));
+        amount.setTextSize(12);
         amount.setTypeface(null, 1);
-        amount.setTextColor(TYPE_INCOME.equals(item.type) ? Color.parseColor("#168A5B") : Color.parseColor("#B42318"));
+        amount.setTextColor(TYPE_INCOME.equals(item.type) ? COLOR_GREEN : COLOR_RED);
         amount.setGravity(android.view.Gravity.END);
-        amount.setLayoutParams(new LinearLayout.LayoutParams(dp(92), ViewGroup.LayoutParams.WRAP_CONTENT));
+        amount.setPadding(0, dp(2), 0, 0);
         row.addView(amount);
 
         row.setOnClickListener(new View.OnClickListener() {
@@ -220,12 +267,10 @@ public class MainActivity extends Activity {
         final Spinner typeSpinner = content.findViewById(R.id.typeSpinner);
         final CheckBox fixedCheck = content.findViewById(R.id.fixedCheck);
 
-        ArrayAdapter<String> groupAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, GROUPS);
-        groupAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        ArrayAdapter<String> groupAdapter = createDarkSpinnerAdapter(GROUPS);
         groupSpinner.setAdapter(groupAdapter);
 
-        ArrayAdapter<String> typeAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, TYPES);
-        typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        ArrayAdapter<String> typeAdapter = createDarkSpinnerAdapter(TYPES);
         typeSpinner.setAdapter(typeAdapter);
 
         if (existing != null) {
@@ -243,35 +288,83 @@ public class MainActivity extends Activity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this)
                 .setTitle(existing == null ? "Ajouter une ligne" : "Modifier la ligne")
                 .setView(content)
-                .setPositiveButton("Enregistrer", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int which) {
-                        saveDialogItem(existing, nameInput, amountInput, groupSpinner, typeSpinner, fixedCheck);
-                    }
-                })
                 .setNegativeButton("Annuler", null);
 
         if (existing != null) {
-            builder.setNeutralButton("Supprimer", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialogInterface, int which) {
-                    items.remove(existing);
-                    saveItems();
-                    renderAll();
-                }
-            });
+            builder.setNeutralButton("Supprimer", null);
         }
 
-        builder.show();
+        builder.setPositiveButton("Enregistrer", null);
+
+        final AlertDialog dialog = builder.create();
+        dialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialogInterface) {
+                if (dialog.getWindow() != null) {
+                    dialog.getWindow().setBackgroundDrawable(new ColorDrawable(COLOR_CARD));
+                }
+                dialog.getButton(DialogInterface.BUTTON_POSITIVE).setTextColor(COLOR_GREEN);
+                dialog.getButton(DialogInterface.BUTTON_NEGATIVE).setTextColor(COLOR_MUTED);
+                dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        if (saveDialogItem(existing, nameInput, amountInput, groupSpinner, typeSpinner, fixedCheck)) {
+                            dialog.dismiss();
+                        }
+                    }
+                });
+                if (existing != null) {
+                    dialog.getButton(DialogInterface.BUTTON_NEUTRAL).setTextColor(COLOR_RED);
+                    dialog.getButton(DialogInterface.BUTTON_NEUTRAL).setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            items.remove(existing);
+                            saveItems();
+                            renderAll();
+                            dialog.dismiss();
+                        }
+                    });
+                }
+            }
+        });
+        dialog.show();
     }
 
-    private void saveDialogItem(BudgetItem existing, EditText nameInput, EditText amountInput, Spinner groupSpinner, Spinner typeSpinner, CheckBox fixedCheck) {
+    private ArrayAdapter<String> createDarkSpinnerAdapter(String[] values) {
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, values) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                View view = super.getView(position, convertView, parent);
+                if (view instanceof TextView) {
+                    TextView textView = (TextView) view;
+                    textView.setTextColor(COLOR_TEXT);
+                    textView.setTextSize(13);
+                }
+                return view;
+            }
+
+            @Override
+            public View getDropDownView(int position, View convertView, ViewGroup parent) {
+                View view = super.getDropDownView(position, convertView, parent);
+                if (view instanceof TextView) {
+                    TextView textView = (TextView) view;
+                    textView.setTextColor(Color.BLACK);
+                    textView.setTextSize(14);
+                }
+                return view;
+            }
+        };
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        return adapter;
+    }
+
+    private boolean saveDialogItem(BudgetItem existing, EditText nameInput, EditText amountInput, Spinner groupSpinner, Spinner typeSpinner, CheckBox fixedCheck) {
         String name = nameInput.getText().toString().trim();
         String rawAmount = amountInput.getText().toString().trim().replace(',', '.');
 
         if (name.length() == 0) {
             Toast.makeText(this, "Nom obligatoire", Toast.LENGTH_SHORT).show();
-            return;
+            return false;
         }
 
         double amount;
@@ -279,7 +372,7 @@ public class MainActivity extends Activity {
             amount = Double.parseDouble(rawAmount);
         } catch (NumberFormatException exception) {
             Toast.makeText(this, "Montant invalide", Toast.LENGTH_SHORT).show();
-            return;
+            return false;
         }
 
         BudgetItem target = existing;
@@ -297,6 +390,7 @@ public class MainActivity extends Activity {
 
         saveItems();
         renderAll();
+        return true;
     }
 
     private void confirmReset() {
@@ -357,7 +451,7 @@ public class MainActivity extends Activity {
                 object.put("fixed", item.fixed);
                 array.put(object);
             } catch (JSONException ignored) {
-                // JSONObject avec valeurs simples ne doit pas échouer ici.
+                // Valeurs simples uniquement.
             }
         }
         getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(KEY_ITEMS, array.toString()).apply();
@@ -381,9 +475,9 @@ public class MainActivity extends Activity {
         addDefault("engie", "Électricité Engie", GROUP_COMMON, TYPE_EXPENSE, 160.00, true);
         addDefault("nourriture", "Nourriture / courses", GROUP_COMMON, TYPE_EXPENSE, 600.00, false);
         addDefault("carburant", "Carburant", GROUP_COMMON, TYPE_EXPENSE, 250.00, false);
-        addDefault("taxe_fonciere", "Taxe foncière mensualisée", GROUP_COMMON, TYPE_EXPENSE, 188.00, true);
+        addDefault("taxe_fonciere", "Taxe foncière", GROUP_COMMON, TYPE_EXPENSE, 188.00, true);
         addDefault("epargne_securite", "Épargne sécurité", GROUP_CREDIT, TYPE_EXPENSE, 100.00, false);
-        addDefault("autre_credit", "Autre crédit à ajouter", GROUP_CREDIT, TYPE_EXPENSE, 0.00, true);
+        addDefault("autre_credit", "Autre crédit", GROUP_CREDIT, TYPE_EXPENSE, 0.00, true);
     }
 
     private void addDefault(String id, String name, String group, String type, double amount, boolean fixed) {
@@ -417,25 +511,28 @@ public class MainActivity extends Activity {
         return total;
     }
 
-    private String money(double value) {
-        return String.format(Locale.FRANCE, "%.2f €", value);
-    }
-
-    private int indexOf(String[] values, String value) {
+    private int indexOf(String[] array, String value) {
         if (value == null) {
             return 0;
         }
-        for (int i = 0; i < values.length; i++) {
-            if (value.equals(values[i])) {
+        for (int i = 0; i < array.length; i++) {
+            if (array[i].equals(value)) {
                 return i;
             }
         }
         return 0;
     }
 
+    private String money(double value) {
+        return String.format(Locale.FRANCE, "%.2f €", value);
+    }
+
+    private String moneyCompact(double value) {
+        return String.format(Locale.FRANCE, "%.0f€", value);
+    }
+
     private int dp(int value) {
-        float density = getResources().getDisplayMetrics().density;
-        return Math.round(value * density);
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
     private static class BudgetItem {
