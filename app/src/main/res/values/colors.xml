@@ -1,0 +1,10 @@
+<resources>
+    <color name="page_bg">#F4F6F8</color>
+    <color name="card_bg">#FFFFFF</color>
+    <color name="ink">#18202A</color>
+    <color name="muted">#667085</color>
+    <color name="brand_green">#168A5B</color>
+    <color name="brand_blue">#1D4ED8</color>
+    <color name="danger">#B42318</color>
+    <color name="line">#D0D5DD</color>
+</resources>
