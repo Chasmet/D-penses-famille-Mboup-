@@ -5,6 +5,7 @@
     android:background="@color/card_bg">
 
     <LinearLayout
+        android:id="@+id/dialogRoot"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/card_bg"
@@ -77,6 +78,13 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:text="Charge fixe / revenu fixe"
+            android:textColor="@color/ink" />
+
+        <CheckBox
+            android:id="@+id/internalCheck"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Transfert interne du couple"
             android:textColor="@color/ink" />
     </LinearLayout>
 </ScrollView>
