@@ -27,7 +27,7 @@
                     android:id="@+id/brandImage"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:src="@drawable/interface"
+                    android:src="@drawable/interface_mboup"
                     android:scaleType="centerCrop"
                     android:contentDescription="Interface famille Mboup" />
 
