@@ -4,11 +4,15 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +20,8 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -25,9 +31,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Scanner;
 
 public class MainActivity extends Activity {
 
@@ -35,7 +43,7 @@ public class MainActivity extends Activity {
     private static final String KEY_ITEMS = "budget_items";
     private static final String KEY_DARK = "dark_mode";
     private static final String KEY_SCHEMA = "budget_schema";
-    private static final int CURRENT_SCHEMA = 4;
+    private static final int CURRENT_SCHEMA = 5;
 
     private static final String GROUP_CHEIKH = "Monsieur Mboup";
     private static final String GROUP_MEOUBA = "Madame Gomis";
@@ -48,7 +56,7 @@ public class MainActivity extends Activity {
     private static final String[] GROUPS = new String[]{GROUP_CHEIKH, GROUP_MEOUBA, GROUP_COMMON, GROUP_CREDIT};
     private static final String[] TYPES = new String[]{TYPE_EXPENSE, TYPE_INCOME};
 
-    private final List<BudgetItem> items = new ArrayList<>();
+    private final List<BudgetItem> items = new ArrayList<BudgetItem>();
     private boolean darkMode = true;
     private Palette colors;
 
@@ -56,14 +64,22 @@ public class MainActivity extends Activity {
     private LinearLayout rootLayout;
     private LinearLayout summaryBox;
     private LinearLayout tableContainer;
+    private FrameLayout brandCard;
+    private View brandOverlay;
+    private ImageView brandImage;
+    private ImageView splashImage;
+    private LinearLayout splashOverlay;
     private TextView titleText;
     private TextView subtitleText;
     private TextView summaryTitle;
     private TextView summaryText;
     private TextView helpText;
+    private TextView splashTitle;
+    private TextView splashSubtitle;
     private Button addButton;
     private Button resetButton;
     private Button themeButton;
+    private Bitmap brandBitmap;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +91,11 @@ public class MainActivity extends Activity {
 
         rootScroll = findViewById(R.id.rootScroll);
         rootLayout = findViewById(R.id.rootLayout);
+        brandCard = findViewById(R.id.brandCard);
+        brandOverlay = findViewById(R.id.brandOverlay);
+        brandImage = findViewById(R.id.brandImage);
+        splashImage = findViewById(R.id.splashImage);
+        splashOverlay = findViewById(R.id.splashOverlay);
         summaryBox = findViewById(R.id.summaryBox);
         tableContainer = findViewById(R.id.tableContainer);
         titleText = findViewById(R.id.titleText);
@@ -82,12 +103,21 @@ public class MainActivity extends Activity {
         summaryTitle = findViewById(R.id.summaryTitle);
         summaryText = findViewById(R.id.summaryText);
         helpText = findViewById(R.id.helpText);
+        splashTitle = findViewById(R.id.splashTitle);
+        splashSubtitle = findViewById(R.id.splashSubtitle);
         addButton = findViewById(R.id.addButton);
         resetButton = findViewById(R.id.resetButton);
         themeButton = findViewById(R.id.themeButton);
 
+        brandBitmap = loadBitmapFromRawBase64();
+        if (brandBitmap != null) {
+            brandImage.setImageBitmap(brandBitmap);
+            splashImage.setImageBitmap(brandBitmap);
+        }
+
         loadItems();
         renderAll();
+        showStartupLogo();
 
         addButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -113,6 +143,36 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void showStartupLogo() {
+        splashOverlay.setVisibility(View.VISIBLE);
+        splashOverlay.bringToFront();
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                splashOverlay.animate().alpha(0f).setDuration(350).withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        splashOverlay.setVisibility(View.GONE);
+                        splashOverlay.setAlpha(1f);
+                    }
+                }).start();
+            }
+        }, 1400);
+    }
+
+    private Bitmap loadBitmapFromRawBase64() {
+        try {
+            InputStream stream = getResources().openRawResource(R.raw.family_brand_header);
+            Scanner scanner = new Scanner(stream).useDelimiter("\\A");
+            String text = scanner.hasNext() ? scanner.next() : "";
+            scanner.close();
+            byte[] decoded = Base64.decode(text.trim(), Base64.DEFAULT);
+            return BitmapFactory.decodeByteArray(decoded, 0, decoded.length);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     private void renderAll() {
         colors = darkMode ? Palette.dark() : Palette.light();
         applyBaseTheme();
@@ -126,10 +186,15 @@ public class MainActivity extends Activity {
         rootScroll.setBackgroundColor(colors.page);
         rootLayout.setBackgroundColor(colors.page);
         summaryBox.setBackground(round(colors.card, colors.line, 16));
-        titleText.setTextColor(colors.text);
-        subtitleText.setTextColor(colors.muted);
+        brandCard.setBackground(round(colors.card, colors.gold, 18));
+        brandOverlay.setBackground(overlayGradient());
+        titleText.setTextColor(Color.WHITE);
+        subtitleText.setTextColor(colors.goldLight);
         summaryTitle.setTextColor(colors.text);
         helpText.setTextColor(colors.muted);
+        splashOverlay.setBackgroundColor(colors.page);
+        splashTitle.setTextColor(colors.text);
+        splashSubtitle.setTextColor(colors.gold);
         themeButton.setText(darkMode ? "Clair" : "Sombre");
         styleButton(addButton, colors.green, Color.WHITE);
         styleButton(resetButton, colors.soft, colors.text);
@@ -144,26 +209,29 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void renderSummary() {
-        double incomeCheikh = sum(GROUP_CHEIKH, TYPE_INCOME, true);
-        double incomeMeouba = sum(GROUP_MEOUBA, TYPE_INCOME, true);
-        double expenseCheikh = sum(GROUP_CHEIKH, TYPE_EXPENSE, true);
-        double expenseMeouba = sum(GROUP_MEOUBA, TYPE_EXPENSE, true);
-        double commonShare = (sum(GROUP_COMMON, TYPE_EXPENSE, false) + sum(GROUP_CREDIT, TYPE_EXPENSE, false)) / 2.0;
+    private GradientDrawable overlayGradient() {
+        return new GradientDrawable(
+                GradientDrawable.Orientation.BOTTOM_TOP,
+                new int[]{Color.argb(210, 5, 8, 22), Color.argb(70, 5, 8, 22), Color.argb(0, 5, 8, 22)}
+        );
+    }
 
-        double balanceCheikh = incomeCheikh - expenseCheikh - commonShare;
-        double balanceMeouba = incomeMeouba - expenseMeouba - commonShare;
+    private void renderSummary() {
+        double sharedExpense = sum(GROUP_COMMON, TYPE_EXPENSE, false) + sum(GROUP_CREDIT, TYPE_EXPENSE, false);
+        double sharedPart = sharedExpense / 2.0;
+        double cheikhBalance = sum(GROUP_CHEIKH, TYPE_INCOME, true) - sum(GROUP_CHEIKH, TYPE_EXPENSE, true) - sharedPart;
+        double meoubaBalance = sum(GROUP_MEOUBA, TYPE_INCOME, true) - sum(GROUP_MEOUBA, TYPE_EXPENSE, true) - sharedPart;
         double realIncome = sumAll(TYPE_INCOME, false);
         double realExpense = sumAll(TYPE_EXPENSE, false);
         double familyBalance = realIncome - realExpense;
         double internalOut = sumInternal(TYPE_EXPENSE);
 
         StringBuilder sb = new StringBuilder();
-        sb.append("Revenus foyer : ").append(money(realIncome)).append("\n");
+        sb.append("Revenus réels : ").append(money(realIncome)).append("\n");
         sb.append("Dépenses réelles : ").append(money(realExpense)).append("\n");
-        sb.append("Virement interne ignoré : ").append(money(internalOut)).append("\n");
-        sb.append("Cheikh : ").append(money(balanceCheikh)).append("  |  Mme Gomis : ").append(money(balanceMeouba)).append("\n");
-        sb.append("Reste foyer : ").append(money(familyBalance));
+        sb.append("Transfert interne ignoré : ").append(money(internalOut)).append("\n");
+        sb.append("Reste Cheikh : ").append(money(cheikhBalance)).append("  |  Mme Gomis : ").append(money(meoubaBalance)).append("\n");
+        sb.append("Reste foyer réel : ").append(money(familyBalance));
         summaryText.setText(sb.toString());
         summaryText.setTextColor(familyBalance < 0 ? colors.red : colors.text);
     }
@@ -207,9 +275,7 @@ public class MainActivity extends Activity {
         table.addView(total);
 
         for (BudgetItem item : items) {
-            if (group.equals(item.group)) {
-                table.addView(createBudgetRow(item));
-            }
+            if (group.equals(item.group)) table.addView(createBudgetRow(item));
         }
 
         Button addHere = new Button(this);
@@ -285,9 +351,7 @@ public class MainActivity extends Activity {
         final CheckBox fixedCheck = content.findViewById(R.id.fixedCheck);
         final CheckBox internalCheck = content.findViewById(R.id.internalCheck);
 
-        content.setBackgroundColor(colors.card);
         applyDialogColors(content);
-
         groupSpinner.setAdapter(createSpinnerAdapter(GROUPS));
         typeSpinner.setAdapter(createSpinnerAdapter(TYPES));
 
@@ -323,9 +387,7 @@ public class MainActivity extends Activity {
                 dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        if (saveDialogItem(existing, nameInput, amountInput, groupSpinner, typeSpinner, fixedCheck, internalCheck)) {
-                            dialog.dismiss();
-                        }
+                        if (saveDialogItem(existing, nameInput, amountInput, groupSpinner, typeSpinner, fixedCheck, internalCheck)) dialog.dismiss();
                     }
                 });
                 if (existing != null) {
@@ -370,6 +432,7 @@ public class MainActivity extends Activity {
                 }
                 return view;
             }
+
             @Override
             public View getDropDownView(int position, View convertView, ViewGroup parent) {
                 View view = super.getDropDownView(position, convertView, parent);
@@ -391,6 +454,7 @@ public class MainActivity extends Activity {
             Toast.makeText(this, "Nom obligatoire", Toast.LENGTH_SHORT).show();
             return false;
         }
+
         double amount;
         try {
             amount = Double.parseDouble(rawAmount);
@@ -425,6 +489,7 @@ public class MainActivity extends Activity {
                     public void onClick(DialogInterface dialogInterface, int which) {
                         seedDefaults();
                         saveItems();
+                        getSharedPreferences(PREFS, MODE_PRIVATE).edit().putInt(KEY_SCHEMA, CURRENT_SCHEMA).apply();
                         renderAll();
                     }
                 })
@@ -439,8 +504,10 @@ public class MainActivity extends Activity {
         if (schema < CURRENT_SCHEMA || json == null || json.trim().length() == 0) {
             seedDefaults();
             saveItems();
+            preferences.edit().putInt(KEY_SCHEMA, CURRENT_SCHEMA).apply();
             return;
         }
+
         items.clear();
         try {
             JSONArray array = new JSONArray(json);
@@ -475,47 +542,47 @@ public class MainActivity extends Activity {
                 object.put("fixed", item.fixed);
                 object.put("internalTransfer", item.internalTransfer);
                 array.put(object);
-            } catch (JSONException ignored) { }
+            } catch (JSONException ignored) {
+            }
         }
-        SharedPreferences.Editor editor = getSharedPreferences(PREFS, MODE_PRIVATE).edit();
-        editor.putString(KEY_ITEMS, array.toString());
-        editor.putInt(KEY_SCHEMA, CURRENT_SCHEMA);
-        editor.putBoolean(KEY_DARK, darkMode);
-        editor.apply();
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                .putString(KEY_ITEMS, array.toString())
+                .putInt(KEY_SCHEMA, CURRENT_SCHEMA)
+                .apply();
     }
 
     private void seedDefaults() {
         items.clear();
-        addDefault("salaire_cheikh", "Salaire", GROUP_CHEIKH, TYPE_INCOME, 1734, true, false);
-        addDefault("navigo", "Navigo", GROUP_CHEIKH, TYPE_EXPENSE, 91, true, false);
-        addDefault("orange", "Orange", GROUP_CHEIKH, TYPE_EXPENSE, 53, true, false);
-        addDefault("red_sfr_cheikh", "RED SFR", GROUP_CHEIKH, TYPE_EXPENSE, 13, true, false);
-        addDefault("assurance_vie", "Assurance-vie", GROUP_CHEIKH, TYPE_EXPENSE, 30, true, false);
-        addDefault("maison_cheikh", "Maison", GROUP_CHEIKH, TYPE_EXPENSE, 850, true, false);
-        addDefault("virement_a_madame", "Virement à Mme Gomis", GROUP_CHEIKH, TYPE_EXPENSE, 112, true, true);
+        add("Salaire", 1734, GROUP_CHEIKH, TYPE_INCOME, true, false);
+        add("Navigo", 91, GROUP_CHEIKH, TYPE_EXPENSE, true, false);
+        add("Orange", 53, GROUP_CHEIKH, TYPE_EXPENSE, true, false);
+        add("RED SFR", 13, GROUP_CHEIKH, TYPE_EXPENSE, true, false);
+        add("Assurance-vie", 30, GROUP_CHEIKH, TYPE_EXPENSE, true, false);
+        add("Maison", 850, GROUP_CHEIKH, TYPE_EXPENSE, true, false);
+        add("Virement à Mme Gomis", 112, GROUP_CHEIKH, TYPE_EXPENSE, true, true);
 
-        addDefault("salaire_meouba", "Salaire", GROUP_MEOUBA, TYPE_INCOME, 2300, true, false);
-        addDefault("caf", "CAF", GROUP_MEOUBA, TYPE_INCOME, 534, true, false);
-        addDefault("virement_cheikh", "Virement Cheikh", GROUP_MEOUBA, TYPE_INCOME, 112, true, true);
-        addDefault("autre_revenu", "Autre revenu", GROUP_MEOUBA, TYPE_INCOME, 194, true, false);
-        addDefault("impots_taxes", "Impôts / taxes", GROUP_MEOUBA, TYPE_EXPENSE, 199, true, false);
-        addDefault("assurance_60", "Assurance", GROUP_MEOUBA, TYPE_EXPENSE, 60, true, false);
-        addDefault("college", "Collège", GROUP_MEOUBA, TYPE_EXPENSE, 230, true, false);
-        addDefault("creche", "Crèche", GROUP_MEOUBA, TYPE_EXPENSE, 180, true, false);
-        addDefault("epargne", "Épargne", GROUP_MEOUBA, TYPE_EXPENSE, 100, true, false);
-        addDefault("essence", "Essence", GROUP_MEOUBA, TYPE_EXPENSE, 220, true, false);
-        addDefault("assurance_230", "Assurance", GROUP_MEOUBA, TYPE_EXPENSE, 230, true, false);
-        addDefault("maison_meouba", "Maison", GROUP_MEOUBA, TYPE_EXPENSE, 269, true, false);
-        addDefault("electricite", "Électricité", GROUP_MEOUBA, TYPE_EXPENSE, 145, true, false);
+        add("Salaire", 2300, GROUP_MEOUBA, TYPE_INCOME, true, false);
+        add("CAF", 534, GROUP_MEOUBA, TYPE_INCOME, true, false);
+        add("Virement Cheikh", 112, GROUP_MEOUBA, TYPE_INCOME, true, true);
+        add("Autre revenu", 194, GROUP_MEOUBA, TYPE_INCOME, true, false);
+        add("Impôts / taxes", 199, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
+        add("Assurance", 60, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
+        add("Collège", 230, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
+        add("Crèche", 180, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
+        add("Épargne", 100, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
+        add("Essence", 220, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
+        add("Assurance voiture", 230, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
+        add("Maison", 269, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
+        add("Électricité", 145, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
     }
 
-    private void addDefault(String id, String name, String group, String type, double amount, boolean fixed, boolean internalTransfer) {
+    private void add(String name, double amount, String group, String type, boolean fixed, boolean internalTransfer) {
         BudgetItem item = new BudgetItem();
-        item.id = id;
+        item.id = "item_" + items.size() + "_" + System.currentTimeMillis();
         item.name = name;
+        item.amount = amount;
         item.group = group;
         item.type = type;
-        item.amount = amount;
         item.fixed = fixed;
         item.internalTransfer = internalTransfer;
         items.add(item);
@@ -552,23 +619,22 @@ public class MainActivity extends Activity {
         return group;
     }
 
-    private String money(double value) {
-        if (Math.abs(value - Math.round(value)) < 0.005) return String.format(Locale.FRANCE, "%.0f €", value);
-        return String.format(Locale.FRANCE, "%.2f €", value);
+    private String moneyCompact(double value) {
+        return String.format(Locale.FRANCE, "%.0f€", value);
     }
 
-    private String moneyCompact(double value) {
-        return money(value);
+    private String money(double value) {
+        return String.format(Locale.FRANCE, "%.0f €", value);
     }
 
     private int indexOf(String[] array, String value) {
         if (value == null) return 0;
-        for (int i = 0; i < array.length; i++) if (array[i].equals(value)) return i;
+        for (int i = 0; i < array.length; i++) if (value.equals(array[i])) return i;
         return 0;
     }
 
     private int dp(int value) {
-        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
     private GradientDrawable round(int fill, int stroke, int radiusDp) {
@@ -579,10 +645,10 @@ public class MainActivity extends Activity {
         return drawable;
     }
 
-    private void styleButton(Button button, int background, int text) {
-        button.setTextColor(text);
-        button.setBackground(round(background, colors.line, 12));
+    private void styleButton(Button button, int background, int textColor) {
+        button.setTextColor(textColor);
         button.setAllCaps(false);
+        button.setBackground(round(background, colors.line, 12));
     }
 
     private static class BudgetItem {
@@ -596,33 +662,50 @@ public class MainActivity extends Activity {
     }
 
     private static class Palette {
-        int page, card, row, soft, text, muted, line, green, red, blue;
+        int page;
+        int card;
+        int row;
+        int soft;
+        int line;
+        int text;
+        int muted;
+        int green;
+        int red;
+        int blue;
+        int gold;
+        int goldLight;
+
         static Palette dark() {
             Palette p = new Palette();
             p.page = Color.rgb(5, 8, 22);
             p.card = Color.rgb(16, 24, 39);
             p.row = Color.rgb(22, 32, 51);
             p.soft = Color.rgb(31, 41, 55);
+            p.line = Color.rgb(43, 55, 75);
             p.text = Color.rgb(248, 250, 252);
             p.muted = Color.rgb(167, 176, 192);
-            p.line = Color.rgb(38, 50, 71);
             p.green = Color.rgb(34, 197, 94);
             p.red = Color.rgb(248, 113, 113);
             p.blue = Color.rgb(96, 165, 250);
+            p.gold = Color.rgb(217, 160, 55);
+            p.goldLight = Color.rgb(253, 230, 138);
             return p;
         }
+
         static Palette light() {
             Palette p = new Palette();
-            p.page = Color.rgb(244, 246, 248);
-            p.card = Color.WHITE;
-            p.row = Color.rgb(248, 250, 252);
-            p.soft = Color.rgb(229, 231, 235);
-            p.text = Color.rgb(24, 32, 42);
-            p.muted = Color.rgb(102, 112, 133);
-            p.line = Color.rgb(208, 213, 221);
-            p.green = Color.rgb(22, 138, 91);
-            p.red = Color.rgb(180, 35, 24);
-            p.blue = Color.rgb(29, 78, 216);
+            p.page = Color.rgb(255, 247, 230);
+            p.card = Color.rgb(255, 255, 255);
+            p.row = Color.rgb(255, 251, 235);
+            p.soft = Color.rgb(247, 233, 203);
+            p.line = Color.rgb(226, 191, 132);
+            p.text = Color.rgb(18, 32, 53);
+            p.muted = Color.rgb(91, 102, 121);
+            p.green = Color.rgb(22, 163, 74);
+            p.red = Color.rgb(220, 38, 38);
+            p.blue = Color.rgb(37, 99, 235);
+            p.gold = Color.rgb(184, 122, 28);
+            p.goldLight = Color.rgb(253, 230, 138);
             return p;
         }
     }
