@@ -43,7 +43,7 @@ tasks.register('syncRootBrandImages') {
         copy {
             from interfaceFile
             into drawableDir
-            rename { 'interface.png' }
+            rename { 'interface_mboup.png' }
         }
     }
 }
