@@ -27,8 +27,9 @@
                     android:id="@+id/brandImage"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
+                    android:src="@drawable/interface"
                     android:scaleType="centerCrop"
-                    android:contentDescription="Logo famille Mboup" />
+                    android:contentDescription="Interface famille Mboup" />
 
                 <LinearLayout
                     android:id="@+id/brandOverlay"
@@ -142,8 +143,9 @@
 
         <ImageView
             android:id="@+id/splashImage"
-            android:layout_width="match_parent"
+            android:layout_width="260dp"
             android:layout_height="260dp"
+            android:src="@drawable/logo"
             android:scaleType="centerCrop"
             android:contentDescription="Logo démarrage Famille Mboup" />
 
