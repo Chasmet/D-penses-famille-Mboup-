@@ -4,15 +4,12 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,7 +18,6 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -31,11 +27,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Scanner;
 
 public class MainActivity extends Activity {
 
@@ -43,7 +37,7 @@ public class MainActivity extends Activity {
     private static final String KEY_ITEMS = "budget_items";
     private static final String KEY_DARK = "dark_mode";
     private static final String KEY_SCHEMA = "budget_schema";
-    private static final int CURRENT_SCHEMA = 5;
+    private static final int CURRENT_SCHEMA = 6;
 
     private static final String GROUP_CHEIKH = "Monsieur Mboup";
     private static final String GROUP_MEOUBA = "Madame Gomis";
@@ -66,8 +60,6 @@ public class MainActivity extends Activity {
     private LinearLayout tableContainer;
     private FrameLayout brandCard;
     private View brandOverlay;
-    private ImageView brandImage;
-    private ImageView splashImage;
     private LinearLayout splashOverlay;
     private TextView titleText;
     private TextView subtitleText;
@@ -79,7 +71,6 @@ public class MainActivity extends Activity {
     private Button addButton;
     private Button resetButton;
     private Button themeButton;
-    private Bitmap brandBitmap;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,8 +84,6 @@ public class MainActivity extends Activity {
         rootLayout = findViewById(R.id.rootLayout);
         brandCard = findViewById(R.id.brandCard);
         brandOverlay = findViewById(R.id.brandOverlay);
-        brandImage = findViewById(R.id.brandImage);
-        splashImage = findViewById(R.id.splashImage);
         splashOverlay = findViewById(R.id.splashOverlay);
         summaryBox = findViewById(R.id.summaryBox);
         tableContainer = findViewById(R.id.tableContainer);
@@ -108,12 +97,6 @@ public class MainActivity extends Activity {
         addButton = findViewById(R.id.addButton);
         resetButton = findViewById(R.id.resetButton);
         themeButton = findViewById(R.id.themeButton);
-
-        brandBitmap = loadBitmapFromRawBase64();
-        if (brandBitmap != null) {
-            brandImage.setImageBitmap(brandBitmap);
-            splashImage.setImageBitmap(brandBitmap);
-        }
 
         loadItems();
         renderAll();
@@ -158,19 +141,6 @@ public class MainActivity extends Activity {
                 }).start();
             }
         }, 1400);
-    }
-
-    private Bitmap loadBitmapFromRawBase64() {
-        try {
-            InputStream stream = getResources().openRawResource(R.raw.family_brand_header);
-            Scanner scanner = new Scanner(stream).useDelimiter("\\A");
-            String text = scanner.hasNext() ? scanner.next() : "";
-            scanner.close();
-            byte[] decoded = Base64.decode(text.trim(), Base64.DEFAULT);
-            return BitmapFactory.decodeByteArray(decoded, 0, decoded.length);
-        } catch (Exception ignored) {
-            return null;
-        }
     }
 
     private void renderAll() {
@@ -275,7 +245,9 @@ public class MainActivity extends Activity {
         table.addView(total);
 
         for (BudgetItem item : items) {
-            if (group.equals(item.group)) table.addView(createBudgetRow(item));
+            if (group.equals(item.group)) {
+                table.addView(createBudgetRow(item));
+            }
         }
 
         Button addHere = new Button(this);
@@ -316,8 +288,12 @@ public class MainActivity extends Activity {
 
         TextView name = new TextView(this);
         String label = item.name;
-        if (item.internalTransfer) label += " ↔";
-        if (item.fixed) label += " • fixe";
+        if (item.internalTransfer) {
+            label += " ↔";
+        }
+        if (item.fixed) {
+            label += " • fixe";
+        }
         name.setText(label);
         name.setTextColor(colors.text);
         name.setTextSize(11);
@@ -374,20 +350,26 @@ public class MainActivity extends Activity {
                 .setView(content)
                 .setNegativeButton("Annuler", null);
 
-        if (existing != null) builder.setNeutralButton("Supprimer", null);
+        if (existing != null) {
+            builder.setNeutralButton("Supprimer", null);
+        }
         builder.setPositiveButton("Enregistrer", null);
 
         final AlertDialog dialog = builder.create();
         dialog.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
             public void onShow(DialogInterface dialogInterface) {
-                if (dialog.getWindow() != null) dialog.getWindow().setBackgroundDrawable(new ColorDrawable(colors.card));
+                if (dialog.getWindow() != null) {
+                    dialog.getWindow().setBackgroundDrawable(new ColorDrawable(colors.card));
+                }
                 dialog.getButton(DialogInterface.BUTTON_POSITIVE).setTextColor(colors.green);
                 dialog.getButton(DialogInterface.BUTTON_NEGATIVE).setTextColor(colors.muted);
                 dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        if (saveDialogItem(existing, nameInput, amountInput, groupSpinner, typeSpinner, fixedCheck, internalCheck)) dialog.dismiss();
+                        if (saveDialogItem(existing, nameInput, amountInput, groupSpinner, typeSpinner, fixedCheck, internalCheck)) {
+                            dialog.dismiss();
+                        }
                     }
                 });
                 if (existing != null) {
@@ -411,13 +393,19 @@ public class MainActivity extends Activity {
         if (view instanceof TextView) {
             TextView textView = (TextView) view;
             textView.setTextColor(colors.text);
-            if (view instanceof EditText) ((EditText) view).setHintTextColor(colors.muted);
+            if (view instanceof EditText) {
+                ((EditText) view).setHintTextColor(colors.muted);
+            }
         }
-        if (view instanceof CheckBox) ((CheckBox) view).setTextColor(colors.text);
+        if (view instanceof CheckBox) {
+            ((CheckBox) view).setTextColor(colors.text);
+        }
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
             group.setBackgroundColor(colors.card);
-            for (int i = 0; i < group.getChildCount(); i++) applyDialogColors(group.getChildAt(i));
+            for (int i = 0; i < group.getChildCount(); i++) {
+                applyDialogColors(group.getChildAt(i));
+            }
         }
     }
 
@@ -501,7 +489,7 @@ public class MainActivity extends Activity {
         SharedPreferences preferences = getSharedPreferences(PREFS, MODE_PRIVATE);
         int schema = preferences.getInt(KEY_SCHEMA, 0);
         String json = preferences.getString(KEY_ITEMS, null);
-        if (schema < CURRENT_SCHEMA || json == null || json.trim().length() == 0) {
+        if (json == null || json.trim().length() == 0 || schema < CURRENT_SCHEMA) {
             seedDefaults();
             saveItems();
             preferences.edit().putInt(KEY_SCHEMA, CURRENT_SCHEMA).apply();
@@ -567,13 +555,18 @@ public class MainActivity extends Activity {
         add("Autre revenu", 194, GROUP_MEOUBA, TYPE_INCOME, true, false);
         add("Impôts / taxes", 199, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
         add("Assurance", 60, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
-        add("Collège", 230, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
-        add("Crèche", 180, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
+        add("Collège Yvane", 230, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
         add("Épargne", 100, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
         add("Essence", 220, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
-        add("Assurance voiture", 230, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
+        add("Assurance", 230, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
         add("Maison", 269, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
-        add("Électricité", 145, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
+        add("Électricité Engie", 145, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
+        add("Crèche", 180, GROUP_MEOUBA, TYPE_EXPENSE, true, false);
+
+        add("Nourriture", 0, GROUP_COMMON, TYPE_EXPENSE, true, false);
+        add("École Nelvyn", 0, GROUP_COMMON, TYPE_EXPENSE, true, false);
+        add("Box / abonnements famille", 0, GROUP_COMMON, TYPE_EXPENSE, true, false);
+        add("Autre crédit manuel", 0, GROUP_CREDIT, TYPE_EXPENSE, true, false);
     }
 
     private void add(String name, double amount, String group, String type, boolean fixed, boolean internalTransfer) {
@@ -591,7 +584,11 @@ public class MainActivity extends Activity {
     private double sum(String group, String type, boolean includeInternal) {
         double total = 0;
         for (BudgetItem item : items) {
-            if (group.equals(item.group) && type.equals(item.type) && (includeInternal || !item.internalTransfer)) total += item.amount;
+            if (group.equals(item.group) && type.equals(item.type)) {
+                if (includeInternal || !item.internalTransfer) {
+                    total += item.amount;
+                }
+            }
         }
         return total;
     }
@@ -599,7 +596,11 @@ public class MainActivity extends Activity {
     private double sumAll(String type, boolean includeInternal) {
         double total = 0;
         for (BudgetItem item : items) {
-            if (type.equals(item.type) && (includeInternal || !item.internalTransfer)) total += item.amount;
+            if (type.equals(item.type)) {
+                if (includeInternal || !item.internalTransfer) {
+                    total += item.amount;
+                }
+            }
         }
         return total;
     }
@@ -607,7 +608,9 @@ public class MainActivity extends Activity {
     private double sumInternal(String type) {
         double total = 0;
         for (BudgetItem item : items) {
-            if (type.equals(item.type) && item.internalTransfer) total += item.amount;
+            if (type.equals(item.type) && item.internalTransfer) {
+                total += item.amount;
+            }
         }
         return total;
     }
@@ -619,22 +622,24 @@ public class MainActivity extends Activity {
         return group;
     }
 
-    private String moneyCompact(double value) {
-        return String.format(Locale.FRANCE, "%.0f€", value);
-    }
-
-    private String money(double value) {
-        return String.format(Locale.FRANCE, "%.0f €", value);
-    }
-
     private int indexOf(String[] array, String value) {
         if (value == null) return 0;
-        for (int i = 0; i < array.length; i++) if (value.equals(array[i])) return i;
+        for (int i = 0; i < array.length; i++) {
+            if (value.equals(array[i])) return i;
+        }
         return 0;
     }
 
+    private String money(double amount) {
+        return String.format(Locale.FRANCE, "%,.0f €", amount).replace('\u00A0', ' ');
+    }
+
+    private String moneyCompact(double amount) {
+        return String.format(Locale.FRANCE, "%.0f €", amount).replace('\u00A0', ' ');
+    }
+
     private int dp(int value) {
-        return Math.round(value * getResources().getDisplayMetrics().density);
+        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
     }
 
     private GradientDrawable round(int fill, int stroke, int radiusDp) {
@@ -645,18 +650,18 @@ public class MainActivity extends Activity {
         return drawable;
     }
 
-    private void styleButton(Button button, int background, int textColor) {
-        button.setTextColor(textColor);
+    private void styleButton(Button button, int backgroundColor, int textColor) {
         button.setAllCaps(false);
-        button.setBackground(round(background, colors.line, 12));
+        button.setTextColor(textColor);
+        button.setBackground(round(backgroundColor, colors.line, 12));
     }
 
     private static class BudgetItem {
         String id;
         String name;
+        double amount;
         String group;
         String type;
-        double amount;
         boolean fixed;
         boolean internalTransfer;
     }
@@ -681,30 +686,30 @@ public class MainActivity extends Activity {
             p.card = Color.rgb(16, 24, 39);
             p.row = Color.rgb(22, 32, 51);
             p.soft = Color.rgb(31, 41, 55);
-            p.line = Color.rgb(43, 55, 75);
+            p.line = Color.rgb(38, 50, 71);
             p.text = Color.rgb(248, 250, 252);
             p.muted = Color.rgb(167, 176, 192);
             p.green = Color.rgb(34, 197, 94);
             p.red = Color.rgb(248, 113, 113);
             p.blue = Color.rgb(96, 165, 250);
-            p.gold = Color.rgb(217, 160, 55);
+            p.gold = Color.rgb(212, 164, 71);
             p.goldLight = Color.rgb(253, 230, 138);
             return p;
         }
 
         static Palette light() {
             Palette p = new Palette();
-            p.page = Color.rgb(255, 247, 230);
+            p.page = Color.rgb(250, 246, 237);
             p.card = Color.rgb(255, 255, 255);
-            p.row = Color.rgb(255, 251, 235);
-            p.soft = Color.rgb(247, 233, 203);
-            p.line = Color.rgb(226, 191, 132);
-            p.text = Color.rgb(18, 32, 53);
-            p.muted = Color.rgb(91, 102, 121);
+            p.row = Color.rgb(246, 241, 231);
+            p.soft = Color.rgb(237, 229, 214);
+            p.line = Color.rgb(220, 205, 174);
+            p.text = Color.rgb(17, 24, 39);
+            p.muted = Color.rgb(91, 101, 116);
             p.green = Color.rgb(22, 163, 74);
             p.red = Color.rgb(220, 38, 38);
             p.blue = Color.rgb(37, 99, 235);
-            p.gold = Color.rgb(184, 122, 28);
+            p.gold = Color.rgb(180, 126, 38);
             p.goldLight = Color.rgb(253, 230, 138);
             return p;
         }
